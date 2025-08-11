@@ -3,27 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stations Popup Map</title>
+  <title>Simple Mapbox Map</title>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.css" rel="stylesheet">
   <style>
     html,body,#map { height:100%; margin:0 }
-    .mapboxgl-popup { max-width: 240px; font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.js"></script>
   <script>
-    // ===== あなたの設定 =====
-    const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA'; // 例: pk.XXXX...
-    const STYLE_URL   = 'mapbox://styles/yuichirofuma/cme6zyp2d00s001rebyiffeqy'; // あなたのスタイルURL
-    // Studioで駅ポイントを載せた「レイヤID」を入れる。複数ならカンマ区切りで追加
-    const LAYER_IDS   = ['train-list-1-3-9ku9bs']; // 例: ['stations-circle', 'stations-icon']
-
-    // 初期表示（東京駅あたり）
-    const INITIAL_CENTER = [139.7671, 35.6812]; // 経度, 緯度
+    // ===== 設定 =====
+    const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA'; 
+    const STYLE_URL   = 'mapbox://styles/yuichirofuma/cme6zyp2d00s001rebyiffeqy';
+    const INITIAL_CENTER = [139.7671, 35.6812]; // 東京駅あたり
     const INITIAL_ZOOM   = 11;
-    // ======================
+    // =================
 
     mapboxgl.accessToken = ACCESS_TOKEN;
     const map = new mapboxgl.Map({
@@ -32,38 +28,9 @@
       center: INITIAL_CENTER,
       zoom: INITIAL_ZOOM
     });
+
+    // ズーム・回転コントロール追加
     map.addControl(new mapboxgl.NavigationControl());
-
-    function stationTitle(props) {
-      // CSV/GeoJSONの列名に合わせて優先取得
-      return props.station_name || props.name || props.title || '駅';
-    }
-
-    function stationDesc(props) {
-      const yomi = props.station_yomi ? `（${props.station_yomi}）` : '';
-      const line = props.line ? `<div>路線：${props.line}</div>` : '';
-      return `<strong>${stationTitle(props)}</strong>${yomi}${line}`;
-    }
-
-    map.on('load', () => {
-      // クリックでポップアップ
-      LAYER_IDS.forEach(id => {
-        map.on('click', id, (e) => {
-          const f = e.features && e.features[0];
-          if (!f) return;
-          const coords = f.geometry.type === 'Point'
-            ? f.geometry.coordinates.slice()
-            : e.lngLat.toArray();
-          new mapboxgl.Popup({ closeOnClick: true })
-            .setLngLat(coords)
-            .setHTML(stationDesc(f.properties || {}))
-            .addTo(map);
-        });
-        // ポインター表示
-        map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
-        map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
-      });
-    });
   </script>
 </body>
 </html>
