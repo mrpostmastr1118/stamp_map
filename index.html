@@ -1,87 +1,100 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stations Popup (with hit layer)</title>
-  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css">
-  <style>html,body,#map{height:100%;margin:0}.mapboxgl-popup{max-width:240px;font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial}</style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stations Debug (v3.14.0)</title>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css">
+<style>
+  html,body,#map{height:100%;margin:0}
+  .dbg{position:fixed;top:8px;left:8px;background:#0009;color:#fff;padding:8px 10px;
+       font:12px/1.4 ui-sans-serif,system-ui;max-width:42ch;border-radius:8px;z-index:10}
+  .dbg code{font-family:ui-monospace,Menlo,Consolas,monospace}
+</style>
 </head>
 <body>
-  <div id="map"></div>
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
-  <script>
-    const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA';
-    const STYLE_URL    = 'mapbox://styles/yuichirofuma/cme6zyp2d00s001rebyiffeqy';
-    const TARGET_LAYER_ID = 'station_layer';    // StudioのレイヤID
-    const HIT_LAYER_ID    = 'station_hit_layer';// 追加する当たり判定レイヤID
+<div class="dbg" id="dbg">loading…</div>
+<div id="map"></div>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+<script>
+const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA';
+const STYLE_HTTPS  = 'https://api.mapbox.com/styles/v1/yuichirofuma/cme6zyp2d00s001rebyiffeqy?access_token='+ACCESS_TOKEN;
+const TARGET_LAYER_ID = 'station_layer';        // ← StudioのレイヤID
+const HIT_LAYER_ID    = 'station_hit_layer';
 
-    mapboxgl.accessToken = ACCESS_TOKEN;
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: STYLE_URL,
-      center: [139.7671, 35.6812],
-      zoom: 13
-    });
-    map.addControl(new mapboxgl.NavigationControl());
+const dbg = (msg) => document.getElementById('dbg').innerHTML = msg;
+window.onerror=(m,s,l,c,e)=>console.error('[onerror]',m,s,l,c,e);
+window.onunhandledrejection=e=>console.error('[unhandledrejection]',e.reason||e);
 
-    map.on('load', () => {
-      const target = map.getLayer(TARGET_LAYER_ID);
-      if (!target) {
-        console.error('target layer not found:', TARGET_LAYER_ID);
-        return;
-      }
-      // station_layer が参照している source / source-layer を取得
-      const src = target.source;
-      const srcLayer = target['source-layer']; // vector tilesetなら定義される
+mapboxgl.accessToken = ACCESS_TOKEN;
+const map = new mapboxgl.Map({
+  container:'map',
+  style: STYLE_HTTPS,          // ← フルURLで確実に取得
+  center:[139.7671,35.6812],
+  zoom:13                      // ← まずは13で描画されることを保証
+});
+map.addControl(new mapboxgl.NavigationControl());
 
-      // 既にあれば消して作り直し
-      if (map.getLayer(HIT_LAYER_ID)) map.removeLayer(HIT_LAYER_ID);
+map.on('load', () => {
+  const style = map.getStyle();
+  const layers = style.layers || [];
+  // レイヤ一覧（point/circle/symbol優先で表示）
+  const list = layers.map(l=>{
+    const min = (l.minzoom ?? 0), max = (l.maxzoom ?? 24);
+    return `${l.id}  <small>[${l.type}] z${min}-${max}</small>`;
+  });
+  const hasTarget = !!map.getLayer(TARGET_LAYER_ID);
+  dbg(
+`<div><b>style loaded</b></div>
+<div>layers: ${layers.length}</div>
+<div>has <code>${TARGET_LAYER_ID}</code>: <b>${hasTarget}</b></div>
+<hr>
+<div style="max-height:40vh;overflow:auto">${list.join('<br>')}</div>
+<small>※ z はそのレイヤの表示ズーム範囲</small>`
+  );
+  console.log('[layers]', layers);
 
-      // ほぼ透明な円を描く（レンダリング対象にするため 0 にはしない）
-      const paint = {
-        'circle-radius': 24,
-        'circle-color': 'rgba(0,0,0,0.01)',
-        'circle-stroke-width': 0
-      };
+  // target が無いなら、まずは Studio でそのレイヤが入っているか(Publish済みか)を確認
+  if (!hasTarget) return;
 
-      // target の直上に差し込む
-      const beforeId = TARGET_LAYER_ID;
+  // 念のため：表示レンジを広げる（min=0/max=24）
+  map.setLayerZoomRange(TARGET_LAYER_ID, 0, 24);
+  try {
+    map.setLayoutProperty(TARGET_LAYER_ID, 'icon-allow-overlap', true);
+    map.setLayoutProperty(TARGET_LAYER_ID, 'text-allow-overlap', true);
+  } catch (e) {} // circleなら無視
 
-      const layerDef = {
-        id: HIT_LAYER_ID,
-        type: 'circle',
-        source: src,
-        paint
-      };
-      if (srcLayer) layerDef['source-layer'] = srcLayer; // vector の場合に必要
-      // （任意）駅だけに限定するフィルタがあるならセット
-      // layerDef.filter = ['has','station_name'];
+  // 当たり判定用の“ほぼ透明”circleレイヤを target の直上に差し込む
+  const t = map.getLayer(TARGET_LAYER_ID);
+  const src = t.source, srcLayer = t['source-layer']; // vectorなら必要
+  if (map.getLayer(HIT_LAYER_ID)) map.removeLayer(HIT_LAYER_ID);
+  const hit = { id:HIT_LAYER_ID, type:'circle', source:src,
+    paint:{ 'circle-radius': 24, 'circle-color': 'rgba(0,0,0,0.01)' } };
+  if (srcLayer) hit['source-layer'] = srcLayer;
+  map.addLayer(hit, TARGET_LAYER_ID);
+  console.log('[hit-layer added]', {src, srcLayer});
 
-      map.addLayer(layerDef, beforeId);
+  // ホバー＆クリック（queryRenderedFeatures）
+  map.on('mousemove', (e) => {
+    const feats = map.queryRenderedFeatures(e.point, { layers: [HIT_LAYER_ID] });
+    map.getCanvas().style.cursor = feats.length ? 'pointer' : '';
+  });
+  map.on('click', (e) => {
+    const feats = map.queryRenderedFeatures(e.point, { layers: [HIT_LAYER_ID] });
+    if (!feats.length) return;
+    const f = feats[0], p = f.properties || {};
+    const coords = f.geometry.type==='Point' ? f.geometry.coordinates.slice() : e.lngLat.toArray();
+    const name = p.station_name || p.name || '駅';
+    const yomi = p.station_yomi ? `（${p.station_yomi}）` : '';
+    const line = p.line ? `<div>路線：${p.line}</div>` : '';
+    new mapboxgl.Popup().setLngLat(coords).setHTML(`<strong>${name}</strong>${yomi}${line}`).addTo(map);
+  });
+});
 
-      // ホバー時のカーソル
-      map.on('mousemove', (e) => {
-        const feats = map.queryRenderedFeatures(e.point, { layers: [HIT_LAYER_ID] });
-        map.getCanvas().style.cursor = feats.length ? 'pointer' : '';
-      });
-
-      // クリック → ポップアップ
-      map.on('click', (e) => {
-        const feats = map.queryRenderedFeatures(e.point, { layers: [HIT_LAYER_ID] });
-        if (!feats.length) return;
-        const f = feats[0], p = f.properties || {};
-        const coords = f.geometry.type==='Point' ? f.geometry.coordinates.slice() : e.lngLat.toArray();
-        const name = p.station_name || p.name || '駅';
-        const yomi = p.station_yomi ? `（${p.station_yomi}）` : '';
-        const line = p.line ? `<div>路線：${p.line}</div>` : '';
-        new mapboxgl.Popup().setLngLat(coords).setHTML(`<strong>${name}</strong>${yomi}${line}`).addTo(map);
-      });
-
-      console.log('[hit-layer added]', {src, srcLayer});
-    });
-
-    map.on('error', e => console.error('[map.error]', e?.error||e));
-  </script>
+map.on('error', e => {
+  console.error('[map.error]', e?.error||e);
+  dbg(`<b style="color:#ff8">map.error</b><div><code>${(e?.error?.message||e||'').toString()}</code></div>`);
+});
+</script>
 </body>
 </html>
