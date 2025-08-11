@@ -21,7 +21,7 @@
       container: 'map',
       style: STYLE_URL,
       center: [139.7671, 35.6812],
-      zoom: 11
+      zoom: 13
     });
     map.addControl(new mapboxgl.NavigationControl());
 
@@ -40,7 +40,7 @@
 
       // ほぼ透明な円を描く（レンダリング対象にするため 0 にはしない）
       const paint = {
-        'circle-radius': 18,
+        'circle-radius': 24,
         'circle-color': 'rgba(0,0,0,0.01)',
         'circle-stroke-width': 0
       };
