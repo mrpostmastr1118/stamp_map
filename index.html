@@ -1,33 +1,28 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Debug Simple Mapbox Map (v3.14.0)</title>
-  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css">
-  <style>html,body,#map{height:100%;margin:0}</style>
-</head>
-<body>
-  <div id="map"></div>
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
-  <script>
-    const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA';
-    const STYLE_HTTPS  = 'https://api.mapbox.com/styles/v1/yuichirofuma/cme6zyp2d00s001rebyiffeqy?access_token='+ACCESS_TOKEN;
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+<script>
+  const ACCESS_TOKEN = 'pk.XXXXXXXX';          // ←あなたのPublic token
+  const STYLE_URL    = 'mapbox://styles/yuichirofuma/cme6zyp2d00s001rebyiffeqy';
+  const LAYER_IDS    = ['station_layer'];      // ←StudioのレイヤID
 
-    // 例外ログ
-    window.onerror=(m,s,l,c,e)=>console.error('[window.onerror]',m,s,l,c,e);
-    window.onunhandledrejection=e=>console.error('[unhandledrejection]',e.reason||e);
+  mapboxgl.accessToken = ACCESS_TOKEN;
+  const map = new mapboxgl.Map({
+    container: 'map', style: STYLE_URL, center: [139.7671, 35.6812], zoom: 11
+  });
+  map.addControl(new mapboxgl.NavigationControl());
 
-    mapboxgl.accessToken = ACCESS_TOKEN;
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: STYLE_HTTPS,
-      center: [139.7671, 35.6812],
-      zoom: 11
+  map.on('load', () => {
+    LAYER_IDS.forEach(id => {
+      map.on('click', id, e => {
+        const f = e.features?.[0]; if (!f) return;
+        const coords = f.geometry.type==='Point' ? f.geometry.coordinates.slice() : e.lngLat.toArray();
+        const name = f.properties.station_name || f.properties.name || '駅';
+        const yomi = f.properties.station_yomi ? `（${f.properties.station_yomi}）` : '';
+        const line = f.properties.line ? `<div>路線：${f.properties.line}</div>` : '';
+        new mapboxgl.Popup().setLngLat(coords).setHTML(`<strong>${name}</strong>${yomi}${line}`).addTo(map);
+      });
+      map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
     });
-    map.addControl(new mapboxgl.NavigationControl());
-    map.on('error', e => console.error('[map.error]', e?.error||e));
-    map.on('load', () => console.log('[map.load] OK'));
-  </script>
-</body>
-</html>
+  });
+</script>
