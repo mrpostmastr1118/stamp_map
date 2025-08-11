@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tokyo Metro Stamp Map (Adalo Embed)</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    .legend { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,.9); padding: 8px 10px; border-radius: 8px; font-family: system-ui, -apple-system, sans-serif; font-size: 12px; }
+    .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+    .btn { display:inline-block; padding:8px 12px; border-radius:8px; border:0; background:#007aff; color:#fff; font-weight:600; cursor:pointer; }
+    .btn:disabled { background:#8aa9ff; cursor: default; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="legend">
+    <span class="dot" style="background:#ff3b30"></span>未訪問
+    &nbsp;&nbsp;
+    <span class="dot" style="background:#007aff"></span>訪問済
+  </div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <script>
+    mapboxgl.accessToken = "pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA";
+
+    const UPDATE_ENDPOINT = "https://example.com/your-update-endpoint";
+    const UPDATE_METHOD = "POST";
+
+    async function loadStations() {
+      const resp = await fetch('stations.sample.json', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('stations.json load failed');
+      return await resp.json();
+    }
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v11',
+      center: [139.767125, 35.681236],
+      zoom: 11
+    });
+
+    function toGeoJSON(stations, visitedFlag) {
+      return {
+        type: "FeatureCollection",
+        features: stations
+          .filter(s => (visitedFlag ? s.visited === true : s.visited === false))
+          .map(s => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+            properties: { id: s.id, name: s.name, line: s.line, visited: s.visited }
+          }))
+      };
+    }
+
+    function popupHTML(props) {
+      const title = `${props.name}（${props.line}）`;
+      const buttonLabel = props.visited ? "スタンプ解除" : "スタンプを押す";
+      return `
+        <div style="min-width:200px;">
+          <div style="font-weight:700;margin-bottom:6px;">${title}</div>
+          <button class="btn" id="stamp-btn">${buttonLabel}</button>
+        </div>
+      `;
+    }
+
+    async function updateVisited(recordId, nextVisited) {
+      // TODO: ここでAdalo API or Webhookを呼び出して DB を更新
+      // 例:
+      // await fetch(UPDATE_ENDPOINT, {
+      //   method: UPDATE_METHOD,
+      //   headers: { "Content-Type":"application/json", "Authorization":"Bearer YOUR_TOKEN" },
+      //   body: JSON.stringify({ id: recordId, visited: nextVisited })
+      // });
+      return { ok: true };
+    }
+
+    function addCircleLayer(id, sourceId, color) {
+      map.addLayer({
+        id,
+        type: 'circle',
+        source: sourceId,
+        paint: {
+          'circle-radius': 7,
+          'circle-color': color,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    (async () => {
+      const stations = await loadStations();
+      map.on('load', () => {
+        map.addSource('unvisited', { type: 'geojson', data: toGeoJSON(stations, false) });
+        map.addSource('visited',   { type: 'geojson', data: toGeoJSON(stations, true) });
+
+        addCircleLayer('unvisited-layer', 'unvisited', '#ff3b30');
+        addCircleLayer('visited-layer',   'visited',   '#007aff');
+
+        map.on('click', 'unvisited-layer', (e) => {
+          const feature = e.features[0];
+          const coords = feature.geometry.coordinates.slice();
+          const props = feature.properties;
+          const html = popupHTML(props);
+          const popup = new mapboxgl.Popup().setLngLat(coords).setHTML(html).addTo(map);
+          popup.on('open', () => {
+            document.getElementById('stamp-btn').addEventListener('click', async () => {
+              const btn = document.getElementById('stamp-btn');
+              btn.disabled = true;
+              const result = await updateVisited(props.id, true);
+              if (result.ok) {
+                const idx = stations.findIndex(s => String(s.id) == String(props.id));
+                if (idx >= 0) stations[idx].visited = true; // will fix case in a moment
+              }
+            });
+          });
+        });
+
+        map.on('click', 'visited-layer', (e) => {
+          const feature = e.features[0];
+          const coords = feature.geometry.coordinates.slice();
+          const props = feature.properties;
+          const html = popupHTML(props);
+          const popup = new mapboxgl.Popup().setLngLat(coords).setHTML(html).addTo(map);
+          popup.on('open', () => {
+            document.getElementById('stamp-btn').addEventListener('click', async () => {
+              const btn = document.getElementById('stamp-btn');
+              btn.disabled = true;
+              const result = await updateVisited(props.id, false);
+              if (result.ok) {
+                const idx = stations.findIndex(s => String(s.id) == String(props.id));
+                if (idx >= 0) stations[idx].visited = false;
+              }
+            });
+          });
+        });
+
+        // pointer appearance
+        map.on('mouseenter', 'unvisited-layer', () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', 'unvisited-layer', () => map.getCanvas().style.cursor = '');
+        map.on('mouseenter', 'visited-layer', () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', 'visited-layer', () => map.getCanvas().style.cursor = '');
+      });
+    })();
+  </script>
+</body>
+</html>
