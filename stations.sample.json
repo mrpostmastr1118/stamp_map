@@ -1,233 +1,332 @@
 [
   {
+    "id": 2001,
     "adalo_id": "2001",
     "name": "澁谷",
     "address": "東京都渋谷区渋谷二丁目21番-1",
     "line": "銀座線",
+    "lat": 35.658517,
+    "lon": 139.701334,
     "visited": false
   },
   {
+    "id": 2002,
     "adalo_id": "2002",
     "name": "表参道",
     "address": "東京都港区北青山三丁目6-12",
     "line": "銀座線",
+    "lat": 35.66528,
+    "lon": 139.7125,
     "visited": false
   },
   {
+    "id": 2003,
     "adalo_id": "2003",
     "name": "外苑前",
     "address": "東京都港区北青山２丁目７−１６",
     "line": "銀座線",
+    "lat": 35.66815,
+    "lon": 139.71315,
     "visited": false
   },
   {
+    "id": 2004,
     "adalo_id": "2004",
     "name": "青山一丁目",
     "address": "東京都港区南青山１丁目１−１９",
     "line": "銀座線",
+    "lat": 35.67205,
+    "lon": 139.7143,
     "visited": false
   },
   {
+    "id": 2005,
     "adalo_id": "2005",
     "name": "赤坂見附",
     "address": "東京都港区赤坂３丁目１−６",
     "line": "銀座線",
+    "lat": 35.676102,
+    "lon": 139.737442,
     "visited": false
   },
   {
+    "id": 2006,
     "adalo_id": "2006",
     "name": "溜池山王",
     "address": "東京都千代田区永田町二丁目11-1",
     "line": "銀座線",
+    "lat": 35.673637,
+    "lon": 139.737706,
     "visited": false
   },
   {
+    "id": 2007,
     "adalo_id": "2007",
     "name": "虎ノ門",
     "address": "東京都港区虎ノ門１丁目２２−１２",
     "line": "銀座線",
+    "lat": 35.669,
+    "lon": 139.74914,
     "visited": false
   },
   {
+    "id": 2008,
     "adalo_id": "2008",
     "name": "新橋",
     "address": "東京都港区新橋２丁目１７",
     "line": "銀座線",
+    "lat": 35.666498,
+    "lon": 139.75964,
     "visited": false
   },
   {
+    "id": 2009,
     "adalo_id": "2009",
     "name": "銀座",
     "address": "東京都中央区銀座４丁目１−２",
     "line": "銀座線",
+    "lat": 35.671629,
+    "lon": 139.765282,
     "visited": false
   },
   {
+    "id": 2010,
     "adalo_id": "2010",
     "name": "京橋",
     "address": "東京都中央区京橋２丁目４",
     "line": "銀座線",
+    "lat": 35.6763,
+    "lon": 139.7705,
     "visited": false
   },
   {
+    "id": 2011,
     "adalo_id": "2011",
     "name": "日本橋",
     "address": "東京都中央区日本橋１−３−１１",
     "line": "銀座線",
+    "lat": 35.683004,
+    "lon": 139.774219,
     "visited": false
   },
   {
+    "id": 2012,
     "adalo_id": "2012",
     "name": "三越前",
     "address": "東京都中央区日本橋室町２丁目１",
     "line": "銀座線",
+    "lat": 35.68469,
+    "lon": 139.77417,
     "visited": false
   },
   {
+    "id": 2013,
     "adalo_id": "2013",
     "name": "神田",
     "address": "東京都千代田区鍛冶町２丁目",
     "line": "銀座線",
+    "lat": 35.69144,
+    "lon": 139.77057,
     "visited": false
   },
   {
+    "id": 2014,
     "adalo_id": "2014",
     "name": "末広町",
     "address": "東京都千代田区外神田３丁目１６",
     "line": "銀座線",
+    "lat": 35.70356,
+    "lon": 139.77001,
     "visited": false
   },
   {
+    "id": 2015,
     "adalo_id": "2015",
     "name": "上野広小路",
     "address": "東京都台東区上野３丁目２９−３",
     "line": "銀座線",
+    "lat": 35.70727,
+    "lon": 139.7736,
     "visited": false
   },
   {
+    "id": 2016,
     "adalo_id": "2016",
     "name": "上野",
     "address": "東京都台東区上野７丁目",
     "line": "銀座線",
+    "lat": 35.712285,
+    "lon": 139.777153,
     "visited": false
   },
   {
+    "id": 2017,
     "adalo_id": "2017",
     "name": "稲荷町",
     "address": "東京都台東区東上野３丁目３３−１１",
     "line": "銀座線",
+    "lat": 35.7147,
+    "lon": 139.783,
     "visited": false
   },
   {
+    "id": 2018,
     "adalo_id": "2018",
     "name": "田原町",
     "address": "東京都台東区西浅草１丁目１−１８",
     "line": "銀座線",
+    "lat": 35.71153,
+    "lon": 139.79048,
     "visited": false
   },
   {
+    "id": 2019,
     "adalo_id": "2019",
     "name": "浅草",
     "address": "東京都台東区浅草1-1-3",
     "line": "銀座線",
+    "lat": 35.71185,
+    "lon": 139.79743,
     "visited": false
   },
   {
-    "adalo_id": "2020",
+    "id": 2101,
+    "adalo_id": "2101",
     "name": "澁谷",
     "address": "東京都渋谷区渋谷二丁目21番-1",
     "line": "半蔵門線",
+    "lat": 35.658517,
+    "lon": 139.701334,
     "visited": false
   },
   {
-    "adalo_id": "2021",
+    "id": 2102,
+    "adalo_id": "2102",
     "name": "表参道",
     "address": "東京都港区北青山三丁目6-12",
     "line": "半蔵門線",
+    "lat": 35.66528,
+    "lon": 139.7125,
     "visited": false
   },
   {
-    "adalo_id": "2022",
+    "id": 2103,
+    "adalo_id": "2103",
     "name": "青山一丁目",
     "address": "東京都港区南青山１丁目１−１９",
     "line": "半蔵門線",
+    "lat": 35.67205,
+    "lon": 139.7143,
     "visited": false
   },
   {
-    "adalo_id": "2023",
+    "id": 2104,
+    "adalo_id": "2104",
     "name": "永田町",
     "address": "東京都千代田区永田町１丁目１１−28",
     "line": "半蔵門線",
+    "lat": 35.674085,
+    "lon": 139.73902,
     "visited": false
   },
   {
-    "adalo_id": "2024",
+    "id": 2105,
+    "adalo_id": "2105",
     "name": "半蔵門",
     "address": "東京都千代田区麹町１丁目6",
     "line": "半蔵門線",
+    "lat": 35.683,
+    "lon": 139.737,
     "visited": false
   },
   {
-    "adalo_id": "2025",
+    "id": 2106,
+    "adalo_id": "2106",
     "name": "九段下",
     "address": "東京都千代田区九段北１丁目１３−１９",
     "line": "半蔵門線",
+    "lat": 35.6996,
+    "lon": 139.7532,
     "visited": false
   },
   {
-    "adalo_id": "2026",
+    "id": 2107,
+    "adalo_id": "2107",
     "name": "神保町",
     "address": "東京都千代田区神田神保町２丁目",
     "line": "半蔵門線",
+    "lat": 35.6998,
+    "lon": 139.753,
     "visited": false
   },
   {
-    "adalo_id": "2027",
+    "id": 2108,
+    "adalo_id": "2108",
     "name": "大手町",
     "address": "東京都千代田区大手町２丁目１−１",
     "line": "半蔵門線",
+    "lat": 35.6841,
+    "lon": 139.7668,
     "visited": false
   },
   {
-    "adalo_id": "2028",
+    "id": 2109,
+    "adalo_id": "2109",
     "name": "三越前",
     "address": "東京都中央区日本橋室町２丁目１",
     "line": "半蔵門線",
+    "lat": 35.68469,
+    "lon": 139.77417,
     "visited": false
   },
   {
-    "adalo_id": "2029",
+    "id": 2110,
+    "adalo_id": "2110",
     "name": "水天宮前",
     "address": "東京都中央区日本橋蛎殻町2-1-1",
     "line": "半蔵門線",
+    "lat": 35.6895,
+    "lon": 139.782,
     "visited": false
   },
   {
-    "adalo_id": "2030",
+    "id": 2111,
+    "adalo_id": "2111",
     "name": "清澄白河",
     "address": "東京都江東区白河１丁目６−１３",
     "line": "半蔵門線",
+    "lat": 35.6824,
+    "lon": 139.7989,
     "visited": false
   },
   {
-    "adalo_id": "2031",
+    "id": 2112,
+    "adalo_id": "2112",
     "name": "住吉",
     "address": "東京都江東区住吉２丁目２３−１２",
     "line": "半蔵門線",
+    "lat": 35.6881,
+    "lon": 139.8154,
     "visited": false
   },
   {
-    "adalo_id": "2032",
+    "id": 2113,
+    "adalo_id": "2113",
     "name": "錦糸町",
     "address": "東京都墨田区江東橋3-14-6",
     "line": "半蔵門線",
+    "lat": 35.6965,
+    "lon": 139.8156,
     "visited": false
   },
   {
-    "adalo_id": "2033",
+    "id": 2114,
+    "adalo_id": "2114",
     "name": "押上",
     "address": "東京都墨田区押上１丁目１−６５",
     "line": "半蔵門線",
+    "lat": 35.7102,
+    "lon": 139.8128,
     "visited": false
   }
 ]
