@@ -1,176 +1,69 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja"> 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>スタンプラリー（路線色×未訪問グレー／編集モード・一括保存）</title>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <title>Stations Popup Map</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.css" rel="stylesheet">
   <style>
-    html,body,#map{height:100%;margin:0}
-    .ui{position:absolute;top:10px;left:10px;z-index:10;display:flex;gap:8px;align-items:center;
-        background:rgba(255,255,255,.95);padding:8px 10px;border-radius:10px;
-        font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-    .btn{appearance:none;border:0;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer}
-    .btn-primary{background:#007aff;color:#fff}
-    .dot{display:inline-block;width:10px;height:10px;border-radius:50%}
-    .legend{margin-left:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    html,body,#map { height:100%; margin:0 }
+    .mapboxgl-popup { max-width: 240px; font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="ui">
-    <label style="display:flex;align-items:center;gap:6px;">
-      <input type="checkbox" id="edit-toggle"> 編集モード
-    </label>
-    <button class="btn btn-primary" id="save-btn" disabled>保存</button>
-    <div class="legend">
-      <span class="dot" style="background:#9AA0A6"></span>未訪問
-      <span class="dot" style="background:#F39700"></span>銀座線
-      <span class="dot" style="background:#8F76D6"></span>半蔵門線
-    </div>
-  </div>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.js"></script>
+  <script>
+    // ===== あなたの設定 =====
+    const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA'; // 例: pk.XXXX...
+    const STYLE_URL   = 'mapbox://styles/yuichirofuma/cme6zyp2d00s001rebyiffeqy'; // あなたのスタイルURL
+    // Studioで駅ポイントを載せた「レイヤID」を入れる。複数ならカンマ区切りで追加
+    const LAYER_IDS   = ['train-list-1-3-9ku9bs']; // 例: ['stations-circle', 'stations-icon']
 
-<script>
-  // === 設定 ===
-  mapboxgl.accessToken = "pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA";
-  const SAVE_ENDPOINT = "";
-  const SAVE_METHOD = "POST";
-  const LINE_COLORS = {"銀座線":"#F39700","半蔵門線":"#8F76D6"};
-  const UNVISITED_COLOR = "#9AA0A6";
-  const UNVISITED_SIZE = 10;
-  const VISITED_SIZE   = 16;
+    // 初期表示（東京駅あたり）
+    const INITIAL_CENTER = [139.7671, 35.6812]; // 経度, 緯度
+    const INITIAL_ZOOM   = 11;
+    // ======================
 
-  // === デバッグ表示（左上に状況を出す） ===
-  const dbg = document.createElement('div');
-  dbg.style.cssText = 'position:absolute;top:60px;left:10px;z-index:10;background:#fff;padding:6px 8px;border-radius:8px;font:12px system-ui;box-shadow:0 1px 6px rgba(0,0,0,.1)';
-  dbg.textContent = 'loading...';
-  document.body.appendChild(dbg);
-  const setDbg = (t) => dbg.textContent = t;
-
-  // === マップ ===
-  const map = new mapboxgl.Map({
-    container: "map",
-    style: "mapbox://styles/mapbox/streets-v11",
-    center: [139.767125, 35.681236],
-    zoom: 12
-  });
-
-  const changes = new Map();
-  const colorFor = st => st.visited ? (LINE_COLORS[st.line] || "#007aff") : UNVISITED_COLOR;
-  const sizeFor  = st => st.visited ? VISITED_SIZE : UNVISITED_SIZE;
-
-  // === JSON ロード（クエリ ?src= で読み先変更可） ===
-  async function loadStations(){
-    const src = new URLSearchParams(location.search).get('src') || 'stations.json';
-    setDbg(`fetching: ${src}`);
-    const r = await fetch(src, { cache: "no-store" });
-    if (!r.ok) {
-      console.error('stations fetch failed:', r.status, r.statusText, 'url=', r.url);
-      throw new Error(`stations.json 読み込み失敗 (HTTP ${r.status}) at ${src}`);
-    }
-    let data;
-    try {
-      data = await r.json();
-    } catch(e) {
-      console.error('JSON parse error', e);
-      throw new Error('stations.json のJSONパースに失敗（構文エラーの可能性）');
-    }
-    // 形式が Array でない場合のフォールバック（{stations: [...]} 等）
-    if (!Array.isArray(data)) {
-      if (Array.isArray(data.stations)) data = data.stations;
-      else throw new Error('stations.json は配列で始まっていません（[ ... ] 形式にしてください）');
-    }
-    // キー名の正規化（adalo_id→id, lng/longitude→lonなど）
-    data.forEach(s => {
-      if (!s.id && s.adalo_id) s.id = Number(s.adalo_id);
-      if (s.lng != null && s.lon == null) s.lon = s.lng;
-      if (s.longitude != null && s.lon == null) s.lon = s.longitude;
-      if (s.latitude != null && s.lat == null) s.lat = s.latitude;
-      // 型を数値に
-      s.lat = Number(s.lat);
-      s.lon = Number(s.lon);
-      // visited 未定義なら false
-      if (typeof s.visited !== 'boolean') s.visited = !!s.visited;
+    mapboxgl.accessToken = ACCESS_TOKEN;
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: STYLE_URL,
+      center: INITIAL_CENTER,
+      zoom: INITIAL_ZOOM
     });
-    return data;
-  }
+    map.addControl(new mapboxgl.NavigationControl());
 
-  function makeMarker(st){
-    if (!isFinite(st.lat) || !isFinite(st.lon)) {
-      console.warn('invalid lat/lon', st);
-      return;
+    function stationTitle(props) {
+      // CSV/GeoJSONの列名に合わせて優先取得
+      return props.station_name || props.name || props.title || '駅';
     }
-    const el = document.createElement("div");
-    const apply = () => {
-      const size = sizeFor(st);
-      el.style.width = size+"px";
-      el.style.height = size+"px";
-      el.style.borderRadius = "50%";
-      el.style.border = "2px solid #fff";
-      el.style.background = colorFor(st);
-      el.style.boxShadow = "0 0 0 1px rgba(0,0,0,.15)";
-    };
-    apply();
-    el.title = `${st.name}（${st.line}）`;
 
-    el.addEventListener("click", () => {
-      if(!document.getElementById("edit-toggle").checked) return;
-      st.visited = !st.visited;
-      apply();
-      changes.set(st.id, st.visited);
-      document.getElementById("save-btn").disabled = changes.size === 0;
-    });
+    function stationDesc(props) {
+      const yomi = props.station_yomi ? `（${props.station_yomi}）` : '';
+      const line = props.line ? `<div>路線：${props.line}</div>` : '';
+      return `<strong>${stationTitle(props)}</strong>${yomi}${line}`;
+    }
 
-    new mapboxgl.Marker(el).setLngLat([st.lon, st.lat]).addTo(map);
-  }
-
-  function fitToAll(stations){
-    const b = new mapboxgl.LngLatBounds();
-    stations.forEach(s => { if (isFinite(s.lon) && isFinite(s.lat)) b.extend([s.lon, s.lat]); });
-    if (!b.isEmpty()) map.fitBounds(b, { padding: 40, maxZoom: 14 });
-  }
-
-  async function main(){
-    try {
-      const stations = await loadStations();
-      setDbg(`loaded: ${stations.length}`);
-      let drawn = 0;
-      stations.forEach(s => { makeMarker(s); drawn++; setDbg(`loaded: ${stations.length} / drawn: ${drawn}`); });
-      fitToAll(stations);
-
-      document.getElementById("save-btn").addEventListener("click", async () => {
-        if(changes.size === 0) return;
-        const updates = Array.from(changes.entries()).map(([id, visited]) => ({ id, visited }));
-        if(!SAVE_ENDPOINT){
-          alert("送信内容（テスト表示）：\n" + JSON.stringify({ updates }, null, 2));
-          changes.clear();
-          document.getElementById("save-btn").disabled = true;
-          return;
-        }
-        try{
-          const r = await fetch(SAVE_ENDPOINT, {
-            method: SAVE_METHOD,
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({ updates })
-          });
-          if(!r.ok) throw new Error(await r.text());
-          changes.clear();
-          document.getElementById("save-btn").disabled = true;
-          alert("保存しました！");
-        }catch(e){
-          alert("保存に失敗しました: " + e.message);
-        }
+    map.on('load', () => {
+      // クリックでポップアップ
+      LAYER_IDS.forEach(id => {
+        map.on('click', id, (e) => {
+          const f = e.features && e.features[0];
+          if (!f) return;
+          const coords = f.geometry.type === 'Point'
+            ? f.geometry.coordinates.slice()
+            : e.lngLat.toArray();
+          new mapboxgl.Popup({ closeOnClick: true })
+            .setLngLat(coords)
+            .setHTML(stationDesc(f.properties || {}))
+            .addTo(map);
+        });
+        // ポインター表示
+        map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
       });
-    } catch(e) {
-      console.error(e);
-      setDbg(e.message);
-      alert(e.message);
-    }
-  }
-
-  main();
-</script>
-
+    });
+  </script>
 </body>
 </html>
