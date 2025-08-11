@@ -1,34 +1,33 @@
 <!doctype html>
-<html lang="ja"> 
+<html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stations Popup Map</title>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet">
-  <style>
-    html,body,#map { height:100%; margin:0 }
-    .mapboxgl-popup { max-width: 240px; font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-  </style>
+  <title>Debug Simple Mapbox Map (v3.14.0)</title>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css">
+  <style>html,body,#map{height:100%;margin:0}</style>
 </head>
 <body>
   <div id="map"></div>
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
   <script>
-    // ===== 設定 =====
     const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA';
-    const STYLE_URL    = 'mapbox://styles/yuichirofuma/cme6zyp2d00s001rebyiffeqy';
-    const LAYER_IDS    = ['station_layer']; // あなたのレイヤID
+    const STYLE_HTTPS  = 'https://api.mapbox.com/styles/v1/yuichirofuma/cme6zyp2d00s001rebyiffeqy?access_token='+ACCESS_TOKEN;
 
-    const INITIAL_CENTER = [139.7671, 35.6812]; // 東京駅
-    const INITIAL_ZOOM   = 11;
-    // =================
+    // 例外ログ
+    window.onerror=(m,s,l,c,e)=>console.error('[window.onerror]',m,s,l,c,e);
+    window.onunhandledrejection=e=>console.error('[unhandledrejection]',e.reason||e);
 
     mapboxgl.accessToken = ACCESS_TOKEN;
     const map = new mapboxgl.Map({
       container: 'map',
-      style: STYLE_URL,
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM
+      style: STYLE_HTTPS,
+      center: [139.7671, 35.6812],
+      zoom: 11
     });
-
-    map.addContr
+    map.addControl(new mapboxgl.NavigationControl());
+    map.on('error', e => console.error('[map.error]', e?.error||e));
+    map.on('load', () => console.log('[map.load] OK'));
+  </script>
+</body>
+</html>
