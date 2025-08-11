@@ -3,56 +3,51 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stations Popup Map (queryRenderedFeatures)</title>
-  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css">
+  <title>Stations Popup (stable)</title>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css?v=1">
   <style>html,body,#map{height:100%;margin:0}.mapboxgl-popup{max-width:240px;font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial}</style>
 </head>
 <body>
   <div id="map"></div>
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js?v=1"></script>
   <script>
     const ACCESS_TOKEN = 'pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA';
-    const STYLE_URL    = 'mapbox://styles/yuichirofuma/cme6zyp2d00s001rebyiffeqy';
-    const LAYER_IDS    = ['station_layer'];   // ← StudioのレイヤID
+    // ← フルURL（?access_token=付き）で確実に取得
+    const STYLE_HTTPS  = 'https://api.mapbox.com/styles/v1/yuichirofuma/cme6zyp2d00s001rebyiffeqy?access_token='+ACCESS_TOKEN+'&v=1';
+    const LAYER_IDS    = ['station_layer']; // StudioのレイヤID
+
+    // ログ（原因切り分け用）
+    window.onerror=(m,s,l,c,e)=>console.error('[onerror]',m,s,l,c,e);
+    window.onunhandledrejection=e=>console.error('[unhandledrejection]',e.reason||e);
 
     mapboxgl.accessToken = ACCESS_TOKEN;
     const map = new mapboxgl.Map({
-      container: 'map',
-      style: STYLE_URL,
-      center: [139.7671, 35.6812],
-      zoom: 11
+      container:'map',
+      style: STYLE_HTTPS,              // ← ここを mapbox://… に戻すと失敗しやすい
+      center:[139.7671,35.6812],
+      zoom:11
     });
     map.addControl(new mapboxgl.NavigationControl());
-
-    // デバッグ：レイヤの存在確認
+    map.on('error', e => console.error('[map.error]', e?.error||e));
     map.on('load', () => {
-      LAYER_IDS.forEach(id => console.log('[has layer]', id, !!map.getLayer(id)));
+      console.log('[map.load] OK', LAYER_IDS.map(id=>[id, !!map.getLayer(id)]));
     });
 
-    // ホバーで手のカーソル
+    // ホバーで手カーソル & クリックでポップアップ（queryRenderedFeatures方式）
     map.on('mousemove', (e) => {
       const feats = map.queryRenderedFeatures(e.point, { layers: LAYER_IDS });
       map.getCanvas().style.cursor = feats.length ? 'pointer' : '';
     });
-
-    // クリックでその地点のフィーチャを取得
     map.on('click', (e) => {
       const feats = map.queryRenderedFeatures(e.point, { layers: LAYER_IDS });
       if (!feats.length) return;
-      const f = feats[0];
-      const coords = f.geometry.type === 'Point'
-        ? f.geometry.coordinates.slice()
-        : e.lngLat.toArray();
-      const p = f.properties || {};
+      const f = feats[0], p = f.properties||{};
+      const coords = f.geometry.type==='Point' ? f.geometry.coordinates.slice() : e.lngLat.toArray();
       const name = p.station_name || p.name || '駅';
       const yomi = p.station_yomi ? `（${p.station_yomi}）` : '';
       const line = p.line ? `<div>路線：${p.line}</div>` : '';
       new mapboxgl.Popup().setLngLat(coords).setHTML(`<strong>${name}</strong>${yomi}${line}`).addTo(map);
     });
-
-    // 何か起きたらログ
-    map.on('error', e => console.error('[map.error]', e?.error||e));
-    window.onunhandledrejection = e => console.error('[unhandledrejection]', e.reason||e);
   </script>
 </body>
 </html>
