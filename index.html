@@ -3,130 +3,117 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>スタンプラリー（編集モード & 一括保存）</title>
+  <title>スタンプラリー（路線色×未訪問グレー／編集モード・一括保存）</title>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <style>
     html,body,#map{height:100%;margin:0}
-    .ui {
-      position:absolute; top:10px; left:10px; z-index:10;
-      display:flex; gap:8px; align-items:center;
-      background:rgba(255,255,255,.95); padding:8px 10px; border-radius:10px;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size:14px
-    }
-    .btn {
-      appearance:none; border:0; padding:8px 12px; border-radius:8px; font-weight:600; cursor:pointer;
-    }
-    .btn-primary { background:#007aff; color:#fff }
-    .btn-ghost { background:#f2f2f7; color:#111 }
-    .dot {display:inline-block;width:10px;height:10px;border-radius:50%}
-    .legend {margin-left:6px; display:flex; gap:10px; align-items:center}
+    .ui{position:absolute;top:10px;left:10px;z-index:10;display:flex;gap:8px;align-items:center;
+        background:rgba(255,255,255,.95);padding:8px 10px;border-radius:10px;
+        font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .btn{appearance:none;border:0;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer}
+    .btn-primary{background:#007aff;color:#fff}
+    .dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+    .legend{margin-left:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   </style>
 </head>
 <body>
   <div id="map"></div>
-
-  <!-- 上部UI -->
   <div class="ui">
     <label style="display:flex;align-items:center;gap:6px;">
-      <input type="checkbox" id="edit-toggle">
-      編集モード
+      <input type="checkbox" id="edit-toggle"> 編集モード
     </label>
     <button class="btn btn-primary" id="save-btn" disabled>保存</button>
     <div class="legend">
-      <span class="dot" style="background:#ff3b30"></span>未訪問
-      <span class="dot" style="background:#007aff;margin-left:8px"></span>訪問済
+      <span class="dot" style="background:#9AA0A6"></span>未訪問
+      <span class="dot" style="background:#F39700"></span>銀座線
+      <span class="dot" style="background:#8F76D6"></span>半蔵門線
     </div>
   </div>
 
   <script>
-    // === 1) Mapbox アクセストークンを自分のものに置き換え ===
     mapboxgl.accessToken = "pk.eyJ1IjoieXVpY2hpcm9mdW1hIiwiYSI6ImNtYTZqazZtZjBzNzMya3E0NjRjZmRsOGgifQ.eq7usBrMNDOipZWRZCl8oA";
+    const SAVE_ENDPOINT = "";
+    const SAVE_METHOD = "POST";
 
-    // === 2) 保存先（Webhook / API）を設定（任意） ===
-    // 例: Zapier Webhook URL / 自前API
-    const SAVE_ENDPOINT = "";  // 未設定ならダイアログ表示のみ
-    const SAVE_METHOD   = "POST";
+    const LINE_COLORS = {"銀座線":"#F39700","半蔵門線":"#8F76D6"};
+    const UNVISITED_COLOR = "#9AA0A6";
+    const UNVISITED_SIZE = 10;
+    const VISITED_SIZE = 16;
 
-    // サンプルデータ（実運用はJSON/APIで取得して入れ替えてOK）
-    const stations = [
-      { id: 1, name: "上野（銀座線）", lat: 35.712285, lon: 139.777153, visited: false },
-      { id: 2, name: "上野（日比谷線）", lat: 35.712285, lon: 139.777153, visited: true  },
-      { id: 3, name: "東京（丸ノ内線）", lat: 35.681236, lon: 139.767125, visited: false },
-      { id: 4, name: "日本橋（東西線）", lat: 35.681219, lon: 139.774219, visited: true  }
-    ];
-
-    // 変更されたレコードを溜める（{id, visited} の配列）
-    const changes = new Map(); // id -> visited
-
-    // 地図
     const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v11',
+      container: "map",
+      style: "mapbox://styles/mapbox/streets-v11",
       center: [139.767125, 35.681236],
       zoom: 12
     });
 
-    // マーカー色
-    const colorFor = v => v ? '#007aff' : '#ff3b30';
+    const changes = new Map();
+    const colorFor = st => st.visited ? (LINE_COLORS[st.line] || "#007aff") : UNVISITED_COLOR;
+    const sizeFor  = st => st.visited ? VISITED_SIZE : UNVISITED_SIZE;
 
-    // 各駅にMarkerを作成
-    stations.forEach(s => {
-      const el = document.createElement('div');
-      el.style.width = '14px';
-      el.style.height = '14px';
-      el.style.borderRadius = '50%';
-      el.style.border = '2px solid #fff';
-      el.style.background = colorFor(s.visited);
-      el.style.boxShadow = '0 0 0 1px rgba(0,0,0,.15)';
-      el.title = s.name;
+    async function loadStations(){
+      const r = await fetch("stations.json", {cache:"no-store"});
+      if(!r.ok) throw new Error("stations.json 読み込み失敗");
+      return await r.json();
+    }
 
-      // クリックで切替（編集モードのときだけ）
-      el.addEventListener('click', () => {
-        const editOn = document.getElementById('edit-toggle').checked;
-        if (!editOn) return; // 編集モードOFFなら何もしない
+    function makeMarker(st){
+      const el = document.createElement("div");
+      const apply = () => {
+        const size = sizeFor(st);
+        el.style.width = size+"px";
+        el.style.height = size+"px";
+        el.style.borderRadius = "50%";
+        el.style.border = "2px solid #fff";
+        el.style.background = colorFor(st);
+        el.style.boxShadow = "0 0 0 1px rgba(0,0,0,.15)";
+      };
+      apply();
+      el.title = st.name + "（" + st.line + "）";
 
-        s.visited = !s.visited;                    // 値を切替
-        el.style.background = colorFor(s.visited); // 見た目更新
-        changes.set(s.id, s.visited);              // 差分記録
-        document.getElementById('save-btn').disabled = changes.size === 0;
+      el.addEventListener("click", () => {
+        if(!document.getElementById("edit-toggle").checked) return;
+        st.visited = !st.visited;
+        apply();
+        changes.set(st.id, st.visited);
+        document.getElementById("save-btn").disabled = changes.size === 0;
       });
 
-      const marker = new mapboxgl.Marker(el).setLngLat([s.lon, s.lat]).addTo(map);
-      s._markerEl = el; // 参照を保持（必要なら後で使う）
-    });
+      new mapboxgl.Marker(el).setLngLat([st.lon, st.lat]).addTo(map);
+    }
 
-    // 保存ボタン
-    document.getElementById('save-btn').addEventListener('click', async () => {
-      if (changes.size === 0) return;
+    async function main(){
+      const stations = await loadStations();
+      stations.forEach(makeMarker);
 
-      // 送信ペイロード作成
-      const payload = Array.from(changes.entries()).map(([id, visited]) => ({ id, visited }));
+      document.getElementById("save-btn").addEventListener("click", async () => {
+        if(changes.size === 0) return;
+        const updates = Array.from(changes.entries()).map(([id, visited]) => ({ id, visited }));
 
-      // 保存先が未設定なら中身を表示して終わり（テスト用）
-      if (!SAVE_ENDPOINT) {
-        alert('送信内容（テスト表示）:\n' + JSON.stringify(payload, null, 2));
-        changes.clear();
-        document.getElementById('save-btn').disabled = true;
-        return;
-      }
+        if(!SAVE_ENDPOINT){
+          alert("送信内容（テスト表示）：\n" + JSON.stringify({ updates }, null, 2));
+          changes.clear();
+          document.getElementById("save-btn").disabled = true;
+          return;
+        }
+        try{
+          const r = await fetch(SAVE_ENDPOINT, {
+            method: SAVE_METHOD,
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ updates })
+          });
+          if(!r.ok) throw new Error(await r.text());
+          changes.clear();
+          document.getElementById("save-btn").disabled = true;
+          alert("保存しました！");
+        }catch(e){
+          alert("保存に失敗しました: " + e.message);
+        }
+      });
+    }
 
-      // 実送信
-      try {
-        const resp = await fetch(SAVE_ENDPOINT, {
-          method: SAVE_METHOD,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ updates: payload })
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        // 成功：差分クリア
-        changes.clear();
-        document.getElementById('save-btn').disabled = true;
-        alert('保存しました！');
-      } catch (e) {
-        alert('保存に失敗しました: ' + e.message);
-      }
-    });
+    main().catch(err => alert(err.message));
   </script>
 </body>
 </html>
