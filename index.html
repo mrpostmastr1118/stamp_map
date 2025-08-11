@@ -40,20 +40,24 @@
     map.addControl(new mapboxgl.NavigationControl());
 
     // ポップアップ本文の生成（プロパティ名にゆるく対応）
-    function popupHTML(props = {}) {
-      const name = props.station_name ?? props.Name ?? props.name ?? props.title ?? '駅';
-      const yomi = props.station_yomi ?? props.yomi ?? '';
-      const line = props.line ? `<div>路線：${props.line}</div>` : '';
-      return `<strong>${name}</strong>${yomi ? `（${yomi}）` : ''}${line}`;
-    }
+   function popupHTML(props = {}) {
+  const name =
+    props.Name ??            // ← 最優先
+    props.station_name ??
+    props.name ??
+    props.title ??
+    '駅';
 
-    map.on('load', () => {
-      // 対象レイヤが入っているか確認
-      const target = map.getLayer(TARGET_LAYER_ID);
-      if (!target) {
-        console.error('target layer not found:', TARGET_LAYER_ID);
-        return;
-      }
+  const yomi =
+    props.station_yomi ??
+    props.yomi ??
+    '';
+
+  const line =
+    props.line ? `<div>路線：${props.line}</div>` : '';
+
+  return `<strong>${name}</strong>${yomi ? `（${yomi}）` : ''}${line}`;
+}
 
       // レイヤの表示レンジを広げる（ズームアウトでも描画）
       map.setLayerZoomRange(TARGET_LAYER_ID, 0, 24);
